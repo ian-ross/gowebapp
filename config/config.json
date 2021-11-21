@@ -49,6 +49,9 @@
 			"HttpOnly": true
 		}
 	},
+  "SSE": {
+    "BrokerInstances": 3
+  },
 	"Template": {
 		"Root": "base",
 		"Children": [

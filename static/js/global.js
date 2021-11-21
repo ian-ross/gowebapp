@@ -2,7 +2,9 @@ $(function() {
     //$(document).foundation();
 		
 	// Hide any messages after a few seconds
-    hideFlash();
+  hideFlash();
+
+  sseStart();
 });
 
 function hideFlash(rnum)
@@ -52,4 +54,22 @@ function flashNotice(message) {
 function flashWarning(message) {
 	var flash = [{Class: "alert-warning", Message: message}];
 	showFlash(flash);
+}
+
+var evtSource;
+
+function sseStart()
+{
+  console.log('sseStart');
+  evtSource = new EventSource('/events');
+  console.log(evtSource);
+  evtSource.addEventListener("broadcast", function(e) {
+    console.log("SSE BROADCAST: " + e.data);
+  })
+  evtSource.addEventListener("individual", function(e) {
+    console.log("SSE INDIVIDUAL: " + e.data);
+  })
+  evtSource.onerror = function() {
+    console.log("EventSource ERROR");
+  }
 }

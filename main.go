@@ -12,6 +12,7 @@ import (
 	"github.com/josephspurrier/gowebapp/app/shared/recaptcha"
 	"github.com/josephspurrier/gowebapp/app/shared/server"
 	"github.com/josephspurrier/gowebapp/app/shared/session"
+	"github.com/josephspurrier/gowebapp/app/shared/sse"
 	"github.com/josephspurrier/gowebapp/app/shared/view"
 	"github.com/josephspurrier/gowebapp/app/shared/view/plugin"
 )
@@ -38,6 +39,10 @@ func main() {
 	// Configure the Google reCAPTCHA prior to loading view plugins
 	recaptcha.Configure(config.Recaptcha)
 
+	// Configure and create SSE broker
+	sse.Configure(config.SSE)
+	sseBroker := sse.NewBroker()
+
 	// Setup the views
 	view.Configure(config.View)
 	view.LoadTemplates(config.Template.Root, config.Template.Children)
@@ -48,7 +53,7 @@ func main() {
 		recaptcha.Plugin())
 
 	// Start the listener
-	server.Run(route.LoadHTTP(), route.LoadHTTPS(), config.Server)
+	server.Run(route.LoadHTTP(sseBroker), route.LoadHTTPS(sseBroker), config.Server, sseBroker)
 }
 
 // *****************************************************************************
@@ -67,6 +72,7 @@ type configuration struct {
 	Session   session.Session `json:"Session"`
 	Template  view.Template   `json:"Template"`
 	View      view.View       `json:"View"`
+	SSE       sse.Info        `json:"SSE"`
 }
 
 // ParseJSON unmarshals bytes to structs

@@ -9,6 +9,7 @@ import (
 	"github.com/josephspurrier/gowebapp/app/route/middleware/logrequest"
 	"github.com/josephspurrier/gowebapp/app/route/middleware/pprofhandler"
 	"github.com/josephspurrier/gowebapp/app/shared/session"
+	"github.com/josephspurrier/gowebapp/app/shared/sse"
 
 	"github.com/gorilla/context"
 	"github.com/josephspurrier/csrfbanana"
@@ -17,18 +18,18 @@ import (
 )
 
 // Load returns the routes and middleware
-func Load() http.Handler {
-	return middleware(routes())
+func Load(sseBroker *sse.Broker) http.Handler {
+	return middleware(routes(sseBroker))
 }
 
 // LoadHTTPS returns the HTTP routes and middleware
-func LoadHTTPS() http.Handler {
-	return middleware(routes())
+func LoadHTTPS(sseBroker *sse.Broker) http.Handler {
+	return middleware(routes(sseBroker))
 }
 
 // LoadHTTP returns the HTTPS routes and middleware
-func LoadHTTP() http.Handler {
-	return middleware(routes())
+func LoadHTTP(sseBroker *sse.Broker) http.Handler {
+	return middleware(routes(sseBroker))
 
 	// Uncomment this and comment out the line above to always redirect to HTTPS
 	//return http.HandlerFunc(redirectToHTTPS)
@@ -43,7 +44,7 @@ func redirectToHTTPS(w http.ResponseWriter, req *http.Request) {
 // Routes
 // *****************************************************************************
 
-func routes() *httprouter.Router {
+func routes(sseBroker *sse.Broker) *httprouter.Router {
 	r := httprouter.New()
 
 	// Set 404 handler
@@ -109,6 +110,12 @@ func routes() *httprouter.Router {
 	r.GET("/debug/pprof/*pprof", hr.Handler(alice.
 		New(acl.DisallowAnon).
 		ThenFunc(pprofhandler.Handler)))
+
+	// Process SSE requests.
+	r.GET("/events",
+		hr.Handler(alice.
+			New().
+			Then(sseBroker)))
 
 	return r
 }

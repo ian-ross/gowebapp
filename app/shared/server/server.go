@@ -3,8 +3,11 @@ package server
 import (
 	"fmt"
 	"log"
+	"math/rand"
 	"net/http"
 	"time"
+
+	"github.com/josephspurrier/gowebapp/app/shared/sse"
 )
 
 // Server stores the hostname and port number
@@ -19,7 +22,11 @@ type Server struct {
 }
 
 // Run starts the HTTP and/or HTTPS listener
-func Run(httpHandlers http.Handler, httpsHandlers http.Handler, s Server) {
+func Run(httpHandlers http.Handler, httpsHandlers http.Handler, s Server, sseBroker *sse.Broker) {
+	// << DEMO CODE  --------------------------------------------------------------
+	go sseTest(sseBroker)
+	// >> DEMO CODE  --------------------------------------------------------------
+
 	if s.UseHTTP && s.UseHTTPS {
 		go func() {
 			startHTTPS(httpsHandlers, s)
@@ -60,3 +67,36 @@ func httpAddress(s Server) string {
 func httpsAddress(s Server) string {
 	return s.Hostname + ":" + fmt.Sprintf("%d", s.HTTPSPort)
 }
+
+// << DEMO CODE  ---------------------------------------------------------------
+// Send broadcast and user messages probabilistically at given rates
+// for performance testing.
+
+const (
+	updateRate    = 10.0 // Hz
+	broadcastRate = 1.0  // Hz
+	userRate      = 0.1  // Hz (for each user)
+
+	broadcastProbability = broadcastRate / updateRate
+	userProbability      = userRate / updateRate
+)
+
+func sseTest(broker *sse.Broker) {
+	broadcastCount := 0
+	for {
+		if rand.Float64() < broadcastProbability {
+			broker.Broadcast(fmt.Sprintf("HELLO FROM SSE: %d", broadcastCount))
+			fmt.Printf("DEMO: SSE broadcast message: %d\n", broadcastCount)
+			broadcastCount++
+		}
+		for _, user := range broker.UserIDs() {
+			if rand.Float64() < userProbability {
+				broker.Send(user, fmt.Sprintf("HELLO, USER %s", user))
+				fmt.Printf("DEMO: SSE user message to %s\n", user)
+			}
+		}
+		time.Sleep(1.0E9 / updateRate)
+	}
+}
+
+// >> DEMO CODE  ---------------------------------------------------------------
