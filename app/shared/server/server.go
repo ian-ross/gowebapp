@@ -22,9 +22,9 @@ type Server struct {
 }
 
 // Run starts the HTTP and/or HTTPS listener
-func Run(httpHandlers http.Handler, httpsHandlers http.Handler, s Server, sseBroker *sse.Broker) {
+func Run(httpHandlers http.Handler, httpsHandlers http.Handler, s Server) {
 	// << DEMO CODE  --------------------------------------------------------------
-	go sseTest(sseBroker)
+	go sseTest()
 	// >> DEMO CODE  --------------------------------------------------------------
 
 	if s.UseHTTP && s.UseHTTPS {
@@ -81,17 +81,17 @@ const (
 	userProbability      = userRate / updateRate
 )
 
-func sseTest(broker *sse.Broker) {
+func sseTest() {
 	broadcastCount := 0
 	for {
 		if rand.Float64() < broadcastProbability {
-			broker.Broadcast(fmt.Sprintf("HELLO FROM SSE: %d", broadcastCount))
+			sse.SendMsgToAll(fmt.Sprintf("HELLO FROM SSE: %d", broadcastCount))
 			fmt.Printf("DEMO: SSE broadcast message: %d\n", broadcastCount)
 			broadcastCount++
 		}
-		for _, user := range broker.UserIDs() {
+		for _, user := range sse.UserIDs() {
 			if rand.Float64() < userProbability {
-				broker.Send(user, fmt.Sprintf("HELLO, USER %s", user))
+				sse.SendMsgToUser(user, fmt.Sprintf("HELLO, USER %s", user))
 				fmt.Printf("DEMO: SSE user message to %s\n", user)
 			}
 		}

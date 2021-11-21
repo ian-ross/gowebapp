@@ -18,18 +18,18 @@ import (
 )
 
 // Load returns the routes and middleware
-func Load(sseBroker *sse.Broker) http.Handler {
-	return middleware(routes(sseBroker))
+func Load() http.Handler {
+	return middleware(routes())
 }
 
 // LoadHTTPS returns the HTTP routes and middleware
-func LoadHTTPS(sseBroker *sse.Broker) http.Handler {
-	return middleware(routes(sseBroker))
+func LoadHTTPS() http.Handler {
+	return middleware(routes())
 }
 
 // LoadHTTP returns the HTTPS routes and middleware
-func LoadHTTP(sseBroker *sse.Broker) http.Handler {
-	return middleware(routes(sseBroker))
+func LoadHTTP() http.Handler {
+	return middleware(routes())
 
 	// Uncomment this and comment out the line above to always redirect to HTTPS
 	//return http.HandlerFunc(redirectToHTTPS)
@@ -44,7 +44,7 @@ func redirectToHTTPS(w http.ResponseWriter, req *http.Request) {
 // Routes
 // *****************************************************************************
 
-func routes(sseBroker *sse.Broker) *httprouter.Router {
+func routes() *httprouter.Router {
 	r := httprouter.New()
 
 	// Set 404 handler
@@ -115,7 +115,7 @@ func routes(sseBroker *sse.Broker) *httprouter.Router {
 	r.GET("/events",
 		hr.Handler(alice.
 			New().
-			Then(sseBroker)))
+			Then(sse.Broker)))
 
 	return r
 }

@@ -9,6 +9,8 @@ import (
 
 var (
 	sse Info
+
+	Broker *broker
 )
 
 // Info has the details for configuring the SSE broker.
@@ -19,6 +21,22 @@ type Info struct {
 // Configure adds the settings for SSE broker.
 func Configure(c Info) {
 	sse = c
+	Broker = newBroker()
+}
+
+// SendMsgToAll sends an SSE message to all connected clients.
+func SendMsgToAll(msg string) {
+	Broker.broadcast(msg)
+}
+
+// SendMsgToUser sends an SSE message to a single clients.
+func SendMsgToUser(userID string, msg string) {
+	Broker.send(userID, msg)
+}
+
+// UserIDs retrieves all the connected authenticated user IDs.
+func UserIDs() []string {
+	return Broker.UserIDs()
 }
 
 // clientMessage is the data passed to each client's message handling
@@ -85,9 +103,9 @@ type brokerInstance struct {
 	userIDReq chan chan []string
 }
 
-// Broker is the top-level structure that ties together a set of SSE
+// broker is the top-level structure that ties together a set of SSE
 // broker instances.
-type Broker struct {
+type broker struct {
 	// There is one brokerInstance per broker goroutine.
 	instances []*brokerInstance
 
@@ -99,7 +117,7 @@ type Broker struct {
 // Start starts a new goroutine. It handles the addition and removal
 // of clients, as well as the broadcasting of messages out to clients
 // that are currently attached.
-func (bi *brokerInstance) Start(b *Broker) {
+func (bi *brokerInstance) start(b *broker) {
 	go func() {
 		for {
 			select {
@@ -158,7 +176,7 @@ func (bi *brokerInstance) Start(b *Broker) {
 			case userIDChan := <-bi.userIDReq:
 				// Retrieve user ID list for the instance. Done over a channel
 				// to avoid potential concurrent map iteration and writes
-				// ebtween Broker.UserIDs and new client processing.
+				// between Broker.UserIDs and new client processing.
 				retids := []string{}
 				for id := range bi.authClients {
 					retids = append(retids, id)
@@ -170,14 +188,14 @@ func (bi *brokerInstance) Start(b *Broker) {
 }
 
 // Stop shuts down the SSE broker.
-func (b *Broker) Stop() {
+func (b *broker) stop() {
 	for _, bi := range b.instances {
 		bi.done <- true
 	}
 }
 
 // Broadcast sends an SSE message for broadcast to all clients.
-func (b *Broker) Broadcast(msg string) {
+func (b *broker) broadcast(msg string) {
 	// Forward the message to all broker instances, so that the
 	// instances can send the message on to all of their connected
 	// clients.
@@ -187,7 +205,7 @@ func (b *Broker) Broadcast(msg string) {
 }
 
 // Send sends an SSE message to a single client.
-func (b *Broker) Send(user string, msg string) {
+func (b *broker) send(user string, msg string) {
 	// Forward the message to all broker instances, so that the
 	// instances can send the message on to the requested user if there
 	// is a connection from that user. (Note that multiple requests from
@@ -201,7 +219,7 @@ func (b *Broker) Send(user string, msg string) {
 }
 
 // ServeHTTP handles HTTP requests for the "/events/" endpoint.
-func (b *Broker) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (b *broker) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// Make sure that the writer supports streaming.
 	f, ok := w.(http.Flusher)
 	if !ok {
@@ -288,28 +306,28 @@ func newBrokerInstance(label int) *brokerInstance {
 	return bi
 }
 
-// NewBroker creates and starts a new SSE broker.
-func NewBroker() *Broker {
+// newBroker creates and starts a new SSE broker.
+func newBroker() *broker {
 	numInstances := sse.BrokerInstances
 	if numInstances < 1 {
 		numInstances = 1
 	}
 
-	b := &Broker{
+	b := &broker{
 		instances:  make([]*brokerInstance, numInstances),
 		newClients: make(chan clientData),
 	}
 
 	for i := 0; i < numInstances; i++ {
 		b.instances[i] = newBrokerInstance(i + 1)
-		b.instances[i].Start(b)
+		b.instances[i].start(b)
 	}
 
 	return b
 }
 
 // UserIDs returns a list of user IDs connected to the SSE broker.
-func (b *Broker) UserIDs() []string {
+func (b *broker) UserIDs() []string {
 	ids := []string{}
 	ch := make(chan []string)
 	for _, bi := range b.instances {

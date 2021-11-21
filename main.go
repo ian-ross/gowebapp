@@ -41,7 +41,6 @@ func main() {
 
 	// Configure and create SSE broker
 	sse.Configure(config.SSE)
-	sseBroker := sse.NewBroker()
 
 	// Setup the views
 	view.Configure(config.View)
@@ -53,7 +52,7 @@ func main() {
 		recaptcha.Plugin())
 
 	// Start the listener
-	server.Run(route.LoadHTTP(sseBroker), route.LoadHTTPS(sseBroker), config.Server, sseBroker)
+	server.Run(route.LoadHTTP(), route.LoadHTTPS(), config.Server)
 }
 
 // *****************************************************************************
