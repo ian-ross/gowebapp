@@ -106,7 +106,7 @@ running multiple connections in multiple threads (i.e.
 
 There are a couple of caveats that go with this code:
 
-1. File descriptor limits
+### 1. File descriptor limits
 
 Each client that wants to receive server-sent events must have a
 long-lived HTTP connection to the server process. This consumes a file
@@ -136,7 +136,7 @@ you expect. There will need to be one file descriptor available per
 SSE connection, plus a number for the main server HTTP connection
 pool, database connections, file output, standard output and so on.)
 
-2. Horizontal scaling
+### 2. Horizontal scaling
 
 As we discussed when scoping the work, the approach used here will
 *not* work correctly if you horizontally scale your server process,
